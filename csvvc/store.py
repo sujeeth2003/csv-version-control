@@ -16,3 +16,10 @@ import json
 import os
 import time
 
+DIR = ".csvvc"
+
+
+class CsvVcError(Exception):
+    pass
+
+
