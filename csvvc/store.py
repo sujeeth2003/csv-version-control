@@ -23,3 +23,12 @@ class CsvVcError(Exception):
     pass
 
 
+def _read_rows(path_or_text, is_text=False):
+    f = io.StringIO(path_or_text) if is_text else open(path_or_text, newline="", encoding="utf-8")
+    with f:
+        rows = list(csv.reader(f))
+    if not rows:
+        raise CsvVcError("empty CSV")
+    return rows[0], rows[1:]
+
+
