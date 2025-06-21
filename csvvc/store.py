@@ -72,3 +72,14 @@ def diff_tables(h_old, r_old, h_new, r_new, key=None):
         for kk, rd in old.items():
             if kk not in new:
                 d["rows_deleted"].append({"key": list(kk), "row": rd})
+    else:
+        from collections import Counter
+        co, cn = Counter(map(tuple, r_old)), Counter(map(tuple, r_new))
+        # without a key we can only compare whole rows (columns must match for this to be meaningful)
+        for row, n in (cn - co).items():
+            d["rows_added"].extend({"key": None, "row": as_dict(h_new, list(row))} for _ in range(n))
+        for row, n in (co - cn).items():
+            d["rows_deleted"].extend({"key": None, "row": as_dict(h_old, list(row))} for _ in range(n))
+    return d
+
+
