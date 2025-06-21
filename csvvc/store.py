@@ -83,3 +83,13 @@ def diff_tables(h_old, r_old, h_new, r_new, key=None):
     return d
 
 
+def _change_ids(commit_id, diff):
+    def cid(*parts): return hashlib.sha1("|".join([commit_id, *map(str, parts)]).encode()).hexdigest()[:10]
+    diff["columns_added"] = [{"column": c, "cid": cid("coladd", c)} for c in diff["columns_added"]]
+    diff["columns_removed"] = [{"column": c, "cid": cid("coldel", c)} for c in diff["columns_removed"]]
+    for x in diff["rows_added"]: x["cid"] = cid("add", x["key"] or json.dumps(x["row"], sort_keys=True))
+    for x in diff["rows_deleted"]: x["cid"] = cid("del", x["key"] or json.dumps(x["row"], sort_keys=True))
+    for x in diff["cells_modified"]: x["cid"] = cid("mod", x["key"], x["column"])
+    return diff
+
+
