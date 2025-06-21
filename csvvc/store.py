@@ -32,3 +32,11 @@ def _read_rows(path_or_text, is_text=False):
     return rows[0], rows[1:]
 
 
+def _canonical(header, rows):
+    out = io.StringIO()
+    w = csv.writer(out, lineterminator="\n")
+    w.writerow(header)
+    w.writerows(rows)
+    return out.getvalue().encode()
+
+
