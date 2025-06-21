@@ -40,3 +40,35 @@ def _canonical(header, rows):
     return out.getvalue().encode()
 
 
+def diff_tables(h_old, r_old, h_new, r_new, key=None):
+    """Structured diff. Returns dict(columns_added, columns_removed, rows_added, rows_deleted, cells_modified)."""
+    d = {"columns_added": [c for c in h_new if c not in h_old], "columns_removed": [c for c in h_old if c not in h_new],
+         "rows_added": [], "rows_deleted": [], "cells_modified": []}
+    common = [c for c in h_new if c in h_old]
+
+    def as_dict(h, r): return dict(zip(h, r))
+    if key:
+        for k in key:
+            if k not in h_old or k not in h_new:
+                raise CsvVcError(f"key column '{k}' missing from a version")
+        kf = lambda row: tuple(row[k] for k in key)
+        old = {}
+        for r in r_old:
+            rd = as_dict(h_old, r); kk = kf(rd)
+            if kk in old: raise CsvVcError(f"duplicate key {kk} in old version")
+            old[kk] = rd
+        new = {}
+        for r in r_new:
+            rd = as_dict(h_new, r); kk = kf(rd)
+            if kk in new: raise CsvVcError(f"duplicate key {kk} in new version")
+            new[kk] = rd
+        for kk, rd in new.items():
+            if kk not in old:
+                d["rows_added"].append({"key": list(kk), "row": rd})
+            else:
+                for c in common:
+                    if old[kk][c] != rd[c]:
+                        d["cells_modified"].append({"key": list(kk), "column": c, "old": old[kk][c], "new": rd[c]})
+        for kk, rd in old.items():
+            if kk not in new:
+                d["rows_deleted"].append({"key": list(kk), "row": rd})
