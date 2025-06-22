@@ -133,3 +133,17 @@ class Repo:
         if len(m) != 1: raise CsvVcError(f"unknown or ambiguous commit '{ref}'")
         return m[0]
 
+    def _store(self, data):
+        sha = hashlib.sha256(data).hexdigest()
+        p = os.path.join(self.dir, "objects", sha + ".csv.gz")
+        if not os.path.exists(p):
+            with gzip.open(p, "wb") as f: f.write(data)
+        return sha
+
+    def _load(self, sha):
+        with gzip.open(os.path.join(self.dir, "objects", sha + ".csv.gz"), "rb") as f:
+            return f.read().decode()
+
+    def table(self, ref):
+        return _read_rows(self._load(self.resolve(ref)["snapshot"]), is_text=True)
+
