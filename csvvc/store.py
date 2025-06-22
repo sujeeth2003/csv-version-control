@@ -93,3 +93,19 @@ def _change_ids(commit_id, diff):
     return diff
 
 
+class Repo:
+    def __init__(self, root="."):
+        self.root = os.path.abspath(root)
+        self.dir = os.path.join(self.root, DIR)
+
+    # ---------------------------------------------------------------- setup / low-level
+    def init(self):
+        os.makedirs(os.path.join(self.dir, "objects"), exist_ok=True)
+        for f in ("commits.jsonl", "HEAD"):
+            open(os.path.join(self.dir, f), "a").close()
+        return self.dir
+
+    def _require(self):
+        if not os.path.isdir(self.dir):
+            raise CsvVcError("not a csvvc repository (run `csvvc init`)")
+
