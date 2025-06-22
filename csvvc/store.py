@@ -147,3 +147,33 @@ class Repo:
     def table(self, ref):
         return _read_rows(self._load(self.resolve(ref)["snapshot"]), is_text=True)
 
+    # ---------------------------------------------------------------- commands
+    def commit(self, csv_path, message, key=None, now=None):
+        self._require()
+        header, rows = _read_rows(csv_path)
+        data = _canonical(header, rows)
+        snap = self._store(data)
+        cs = self.commits()
+        parent = self.head()
+        diff = {"columns_added": [], "columns_removed": [], "rows_added": [], "rows_deleted": [], "cells_modified": []}
+        if parent:
+            p = self.resolve(parent)
+            if p["snapshot"] == snap:
+                raise CsvVcError("nothing to commit (file identical to HEAD)")
+            key = key or p.get("key")
+            ph, pr = self.table(parent)
+            diff = diff_tables(ph, pr, header, rows, key)
+        else:
+            diff["rows_added"] = [{"key": None, "row": dict(zip(header, r))} for r in rows] if not key else \
+                [{"key": [dict(zip(header, r))[k] for k in key], "row": dict(zip(header, r))} for r in rows]
+        ts = now if now is not None else time.time()
+        cid = hashlib.sha1(f"{parent}|{snap}|{message}|{ts}".encode()).hexdigest()[:12]
+        diff = _change_ids(cid, diff)
+        rec = {"id": cid, "parent": parent, "time": ts, "message": message, "snapshot": snap, "key": key,
+               "rows": len(rows), "columns": header, "changes": diff}
+        with open(os.path.join(self.dir, "commits.jsonl"), "a") as f:
+            f.write(json.dumps(rec) + "\n")
+        with open(os.path.join(self.dir, "HEAD"), "w") as f:
+            f.write(cid)
+        return rec
+
