@@ -109,3 +109,27 @@ class Repo:
         if not os.path.isdir(self.dir):
             raise CsvVcError("not a csvvc repository (run `csvvc init`)")
 
+    def commits(self):
+        self._require()
+        with open(os.path.join(self.dir, "commits.jsonl")) as f:
+            return [json.loads(line) for line in f if line.strip()]
+
+    def head(self):
+        with open(os.path.join(self.dir, "HEAD")) as f:
+            return f.read().strip() or None
+
+    def resolve(self, ref):
+        cs = self.commits()
+        if ref in (None, "HEAD"):
+            if not cs: raise CsvVcError("no commits yet")
+            return next(c for c in cs if c["id"] == self.head())
+        if ref.startswith("HEAD~"):
+            n = int(ref[5:]); cur = self.resolve("HEAD")
+            for _ in range(n):
+                if not cur["parent"]: raise CsvVcError("history is not that long")
+                cur = next(c for c in cs if c["id"] == cur["parent"])
+            return cur
+        m = [c for c in cs if c["id"].startswith(ref)]
+        if len(m) != 1: raise CsvVcError(f"unknown or ambiguous commit '{ref}'")
+        return m[0]
+
