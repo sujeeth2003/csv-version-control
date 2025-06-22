@@ -195,3 +195,8 @@ class Repo:
             f.write(data)
         return out_path
 
+    def status(self, csv_path):
+        """Is the working file different from HEAD? Returns the structured diff (empty if identical)."""
+        h, r = _read_rows(csv_path)
+        ph, pr = self.table("HEAD")
+        return diff_tables(ph, pr, h, r, self.resolve("HEAD").get("key"))
