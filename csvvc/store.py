@@ -177,3 +177,21 @@ class Repo:
             f.write(cid)
         return rec
 
+    def log(self):
+        cs = {c["id"]: c for c in self.commits()}
+        out, cur = [], self.head()
+        while cur:
+            out.append(cs[cur]); cur = cs[cur]["parent"]
+        return out
+
+    def diff(self, a, b):
+        ca, cb = self.resolve(a), self.resolve(b)
+        ha, ra = self.table(ca["id"]); hb, rb = self.table(cb["id"])
+        return diff_tables(ha, ra, hb, rb, cb.get("key") or ca.get("key"))
+
+    def checkout(self, ref, out_path):
+        data = self._load(self.resolve(ref)["snapshot"])
+        with open(out_path, "w", newline="", encoding="utf-8") as f:
+            f.write(data)
+        return out_path
+
