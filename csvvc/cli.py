@@ -48,3 +48,14 @@ def main(argv=None):
             print(f"wrote {repo.checkout(a.ref, a.output)}")
         elif a.cmd == "status":
             print(fmt_diff(repo.status(a.file)))
+        elif a.cmd == "show":
+            cm = repo.resolve(a.ref)
+            print(f"commit {cm['id']}\n{cm['message']}\nkey: {cm['key']}\n{fmt_diff(cm['changes'])}")
+    except CsvVcError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
