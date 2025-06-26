@@ -22,3 +22,21 @@ class CsvVcTests(unittest.TestCase):
         write(self.f, text)
         return self.repo.commit(self.f, msg, key=key)
 
+    def test_checkout_restores_every_version_exactly(self):
+        v = ["id,name\n1,a\n2,b\n", "id,name\n1,a\n2,B\n3,c\n", "id,name,age\n1,a,5\n3,c,6\n"]
+        ids = [self.commit(t, f"v{i}", key=["id"])["id"] for i, t in enumerate(v)]
+        for i, cid in enumerate(ids):
+            out = os.path.join(self.d, f"out{i}.csv")
+            self.repo.checkout(cid, out)
+            with open(out, newline="") as fh:
+                self.assertEqual(fh.read(), v[i])
+
+    def test_row_level_changes_with_key(self):
+        self.commit("id,name,city\n1,ann,NYC\n2,bob,LA\n3,cy,SF\n", "base", key=["id"])
+        r = self.commit("id,name,city\n1,ann,BOS\n3,cy,SF\n4,di,DC\n", "edit")
+        ch = r["changes"]
+        self.assertEqual([x["key"] for x in ch["rows_added"]], [["4"]])
+        self.assertEqual([x["key"] for x in ch["rows_deleted"]], [["2"]])
+        self.assertEqual([(x["key"], x["column"], x["old"], x["new"]) for x in ch["cells_modified"]], [(["1"], "city", "NYC", "BOS")])
+        self.assertTrue(all(len(x["cid"]) == 10 for k in ("rows_added", "rows_deleted", "cells_modified") for x in ch[k]))
+
