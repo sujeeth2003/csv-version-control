@@ -40,3 +40,21 @@ class CsvVcTests(unittest.TestCase):
         self.assertEqual([(x["key"], x["column"], x["old"], x["new"]) for x in ch["cells_modified"]], [(["1"], "city", "NYC", "BOS")])
         self.assertTrue(all(len(x["cid"]) == 10 for k in ("rows_added", "rows_deleted", "cells_modified") for x in ch[k]))
 
+    def test_reordering_rows_is_not_a_change_when_keyed(self):
+        self.commit("id,v\n1,a\n2,b\n", "a", key=["id"])
+        r = self.commit("id,v\n2,b\n1,a\n", "reorder")            # different bytes, same data
+        ch = r["changes"]
+        self.assertEqual((ch["rows_added"], ch["rows_deleted"], ch["cells_modified"]), ([], [], []))
+
+    def test_schema_changes(self):
+        self.commit("id,a\n1,x\n", "a", key=["id"])
+        r = self.commit("id,b\n1,x\n", "swap column")
+        self.assertEqual([c["column"] for c in r["changes"]["columns_added"]], ["b"])
+        self.assertEqual([c["column"] for c in r["changes"]["columns_removed"]], ["a"])
+
+    def test_keyless_mode_tracks_added_and_deleted_rows(self):
+        self.commit("a,b\n1,2\n3,4\n", "base")
+        r = self.commit("a,b\n1,2\n5,6\n", "next")
+        self.assertEqual(len(r["changes"]["rows_added"]), 1)
+        self.assertEqual(len(r["changes"]["rows_deleted"]), 1)
+
