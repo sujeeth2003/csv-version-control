@@ -74,3 +74,14 @@ class CsvVcTests(unittest.TestCase):
         st = self.repo.status(self.f)
         self.assertEqual(st["cells_modified"][0]["new"], "CHANGED")
 
+    def test_duplicate_keys_rejected_and_snapshots_deduplicated(self):
+        with self.assertRaises(CsvVcError):
+            self.commit("id,v\n1,a\n1,b\n", "dup", key=["id"]); self.commit("id,v\n1,a\n", "x")
+        write(self.f, "id,v\n1,a\n");
+        n_before = len(os.listdir(os.path.join(self.repo.dir, "objects")))
+        self.repo.checkout("HEAD", os.path.join(self.d, "tmp.csv"))
+        self.assertEqual(n_before, len(os.listdir(os.path.join(self.repo.dir, "objects"))))
+
+
+if __name__ == "__main__":
+    unittest.main()
