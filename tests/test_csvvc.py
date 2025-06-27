@@ -58,3 +58,19 @@ class CsvVcTests(unittest.TestCase):
         self.assertEqual(len(r["changes"]["rows_added"]), 1)
         self.assertEqual(len(r["changes"]["rows_deleted"]), 1)
 
+    def test_identical_commit_refused_and_log_order(self):
+        self.commit("a\n1\n", "one")
+        with self.assertRaises(CsvVcError): self.commit("a\n1\n", "again")
+        self.commit("a\n2\n", "two")
+        self.assertEqual([c["message"] for c in self.repo.log()], ["two", "one"])
+
+    def test_diff_between_any_two_versions_and_status(self):
+        self.commit("id,v\n1,a\n", "v1", key=["id"])
+        self.commit("id,v\n1,b\n", "v2")
+        self.commit("id,v\n1,c\n2,z\n", "v3")
+        d = self.repo.diff("HEAD~2", "HEAD")
+        self.assertEqual(len(d["cells_modified"]), 1); self.assertEqual(len(d["rows_added"]), 1)
+        write(self.f, "id,v\n1,c\n2,CHANGED\n")
+        st = self.repo.status(self.f)
+        self.assertEqual(st["cells_modified"][0]["new"], "CHANGED")
+
