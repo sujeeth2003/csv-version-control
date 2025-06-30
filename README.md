@@ -25,3 +25,8 @@ diff HEAD~1..HEAD
 - **Rows are matched by key column(s)** (`--key id` or `--key a,b`). With a key, **reordering rows is not a change**. Without a key, rows are compared as whole-row multisets, so you only see additions and deletions (an edited row shows as delete + add).
 - Commit history is an append-only JSON-lines file (`.csvvc/commits.jsonl`), HEAD is one file: easy to inspect or back up.
 
+## Tests (8 pass)
+`python -m unittest discover -s tests`: exact checkout of every historical version (including a schema change), row/cell-level changes with keys, row reordering ignored when keyed, column add/remove, keyless mode, refusing an identical commit, diff between arbitrary versions and `status`, duplicate-key rejection.
+
+## Not (yet) implemented
+Branches and merges, remote/push/pull, three-way conflict resolution, rename detection for columns, very large files (the whole table is held in memory), non-UTF-8 encodings.
