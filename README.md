@@ -19,3 +19,9 @@ diff HEAD~1..HEAD
   - row ['2'] {'id': '2', 'name': 'bob', 'city': 'LA'}   [c04d8f6a11]
 ```
 
+## How it works
+- **Snapshots, not replayed diffs.** Every commit stores the full canonical CSV, gzip-compressed and content-addressed by SHA-256 (identical versions are stored once), so `checkout` is exact and a corrupt commit can never poison later ones.
+- **Structured change list per commit**, computed against the parent: rows added / deleted, cells modified (old -> new), columns added / removed. Each carries a change ID, `sha1(commit id, kind, row key, column)`.
+- **Rows are matched by key column(s)** (`--key id` or `--key a,b`). With a key, **reordering rows is not a change**. Without a key, rows are compared as whole-row multisets, so you only see additions and deletions (an edited row shows as delete + add).
+- Commit history is an append-only JSON-lines file (`.csvvc/commits.jsonl`), HEAD is one file: easy to inspect or back up.
+
